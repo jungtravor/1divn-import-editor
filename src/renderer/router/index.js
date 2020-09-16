@@ -19,13 +19,13 @@ export default new Router({
       meta: {title: '输入文件'},
       component: require('@/components/input/index').default
     },
-    {
+    /* {
       path: '/landingPage',
       name: 'landing-page',
       title: '信息',
       meta: {},
       component: require('@/components/LandingPage').default
-    },
+    }, */
     {
       path: '*',
       redirect: '/'

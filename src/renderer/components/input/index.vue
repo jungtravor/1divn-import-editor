@@ -1,8 +1,11 @@
 <template>
     <v-container fluid style="height: 100%">
+        <v-overlay :value="loadingOverlay">
+            <v-progress-circular indeterminate size="64"></v-progress-circular>
+        </v-overlay>
         <v-snackbar
                 v-model="fileSnackbar"
-                color="primary"
+                color="orange darken-4"
         >
             {{ fileSnackbarText }}
             <template v-slot:action="{ attrs }">
@@ -16,8 +19,8 @@
                 </v-btn>
             </template>
         </v-snackbar>
-        <v-container>
-            <v-row>
+        <v-container fluid>
+            <v-row justify="center">
                 <v-col cols="6">
                     <v-card id="fileDragger">
                         <v-overlay
@@ -28,51 +31,58 @@
                         >
                             <h1>松开鼠标以导入</h1>
                         </v-overlay>
-                        <v-card-title>选择文件</v-card-title>
+                        <v-card-title>选择现有文件 或 创建新文件</v-card-title>
                         <v-card-text>
-                            <h3>点击输入框或拖拽文件到此处</h3>
-                            <v-row align="center" style="padding: 0 1rem">
-                                <v-file-input
-                                        :label="fileInputLabel"
-                                        v-model="file"
-                                        @change="fileReadDisabled = file === undefined"
-                                        :clearable="false"
-                                >
-                                </v-file-input>
-                                <v-btn
-                                        color="primary"
-                                        :disabled="fileReadDisabled"
-                                        @click="fileRead"
-                                        style="margin-left: 2rem"
-                                >
-                                    读取文件
-                                </v-btn>
+                            <v-dialog
+                                    v-model="fileCreateDialogEnabled"
+                                    max-width="290"
+                            >
+                                <v-card>
+                                    <v-card-title>创建新文件</v-card-title>
+                                    <v-card-text>
+                                        <v-row>
+                                            <v-col cols="6">
+                                                <v-text-field
+                                                        label="压气机级数"
+                                                        v-model="fileCreateZ"
+                                                ></v-text-field>
+                                            </v-col>
+                                            <v-col cols="6">
+                                                <v-text-field
+                                                        label="特性线条数"
+                                                        v-model="fileCreateN"
+                                                ></v-text-field>
+                                            </v-col>
+                                            <v-col cols="12">
+                                                <v-btn color="primary" @click="fileCreate" style="float: right">创建空白文件</v-btn>
+                                            </v-col>
+                                        </v-row>
+                                    </v-card-text>
+                                </v-card>
+                            </v-dialog>
+                            <v-row justify="space-around">
+                                <v-col cols="auto"><h2>拖拽文件到此处 或：</h2></v-col>
+                                <v-col cols="auto">
+                                    <v-btn color="primary" large @click="fileSelect">读取文件</v-btn>
+                                </v-col>
+                                <v-col cols="auto">
+                                    <v-btn color="primary" large @click="fileCreateDialogEnabled = true">创建文件</v-btn>
+                                </v-col>
                             </v-row>
+                            <v-slide-y-transition>
+                                <div v-if="paramsPrepared" style="padding: 1rem">
+                                    <hr style="margin-bottom: 1rem"/>
+                                    <h3>文件名：{{ fileName }}</h3>
+                                    <h3>文件路径：{{ filePath }}</h3>
+                                    <h3>文件大小：{{ fileSize }} 字节</h3>
+                                </div>
+                            </v-slide-y-transition>
                         </v-card-text>
                     </v-card>
                 </v-col>
-                <v-col cols="6">
-                    <v-expand-transition>
-                        <v-card
-                                v-if="fileInfo.name!==''"
-                                style="height: 100%"
-                        >
-                            <v-card-title>当前文件</v-card-title>
-                            <v-card-text>
-                                <p>文件名：{{fileInfo.name}}
-                                    <br>文件大小：{{fileInfo.size}}字节
-                                    <br>完整路径：{{fileInfo.path}}
-                                </p>
-                            </v-card-text>
-                        </v-card>
-                    </v-expand-transition>
-                </v-col>
             </v-row>
         </v-container>
-        <v-row
-                v-if="paramsPrepared"
-                style="padding: 1rem"
-        >
+        <v-row v-if="paramsPrepared" style="padding: 1rem">
             <v-col cols="12">
                 <v-expand-transition>
                     <v-card>
@@ -114,7 +124,7 @@
                                         ></v-text-field>
                                     </v-col>
                                     <v-col
-                                            cols="1.5"
+                                            cols="2"
                                             v-if="index1===14"
                                             v-for="(item, index2) in paramsData[index1]"
                                     >
@@ -158,6 +168,30 @@
                                             </v-col>
                                         </v-row>
                                     </v-col>
+                                    <v-col
+                                            cols="12"
+                                            v-if="index1===16"
+                                    >
+                                        <v-row
+                                                v-for="(item, index2) in paramsData[index1]"
+                                        >
+                                            <v-col cols="12">
+                                                <h3>第 {{index2+1}} 条特性线</h3>
+                                            </v-col>
+                                            <v-col
+                                                    cols="1"
+                                                    v-for="(angle, index3) in paramsData[index1][index2]"
+                                            >
+                                                <v-text-field
+                                                        outlined
+                                                        v-model="paramsData[index1][index2][index3]"
+                                                        :label="params16(index3)"
+                                                        placeholder="请输入数据"
+                                                        :name="index1 + '-' + index2 + '-' + index3"
+                                                ></v-text-field>
+                                            </v-col>
+                                        </v-row>
+                                    </v-col>
 
                                 </v-row>
                             </div>
@@ -189,10 +223,26 @@
                 <v-btn
                         rounded
                         dark
-                        color="primary"
+                        color="indigo darken-1"
                         @click="fileSave"
                 >
-                    <v-icon>mdi-content-save</v-icon>保存文件
+                    <v-icon>mdi-content-save</v-icon>&nbsp;保存文件
+                </v-btn>
+                <v-btn
+                        rounded
+                        dark
+                        color="orange darken-3"
+                        @click="fileSaveFor"
+                >
+                    <v-icon>mdi-content-save-all</v-icon>&nbsp;另存为
+                </v-btn>
+                <v-btn
+                        rounded
+                        dark
+                        color="red darken-3"
+                        @click="fileDelete"
+                >
+                    <v-icon>mdi-delete</v-icon>删除
                 </v-btn>
             </v-speed-dial>
         </v-fade-transition>
@@ -201,27 +251,23 @@
 
 <script>
   const fs = require('fs')
+  const { dialog } = require('electron').remote
   export default {
     name: 'index',
-    computed: {
-      fileInputLabel () {
-        return this.file ? '' : '文件名'
-      }
-    },
     data () {
       return {
+        isDebug: false,
         editButton: false,
-        file: undefined,
-        fileInfo: {
-          name: '',
-          size: 0,
-          path: '/'
-        },
         fileContent: undefined,
-        fileReadDisabled: true,
+        fileCreateDialogEnabled: false,
+        fileCreateN: 1,
+        fileCreateZ: 1,
+        filePath: '',
+        fileSize: 0,
         fileDraggerOverlay: false,
         fileSnackbar: false,
         fileSnackbarText: '',
+        loadingOverlay: false,
         paramsPrepared: false,
         paramsIZ: 0,
         paramsN: 0,
@@ -240,6 +286,7 @@
           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
           [0.0, 0.0, 0.0, 0.0, 0.0],
           [0.0, 0.0, 0.0, 1],
+          [],
           [],
           []
         ],
@@ -317,49 +364,155 @@
             {name: '计算特性线的条数', param: 'N'}
           ],
           {name: '特性线的转速百分比及流量系数计算初始点', param: 'AN(I,J)', dimension: 2},
-          {name: '可调叶冠转动角', param: 'TETA(I,J)', dimension: 2}
+          {name: '可调叶冠转动角', param: 'TETA(I,J)', dimension: 2},
+          {name: '级间引气流量百分比', param: 'MOUT', dimension: 2}
         ]
       }
     },
+    watch: {
+      fileCreateDialogEnabled: function (oldVal) {
+        if (oldVal === true) {
+          this.fileCreateN = 1
+          this.fileCreateZ = 1
+        }
+      }
+    },
+    computed: {
+      fileName () {
+        const fp = this.filePath.split('\\')
+        return fp.pop()
+      }
+    },
     methods: {
-      fileMessage (message) {
-        this.fileSnackbar = true
-        this.fileSnackbarText = message
+      debug (message, position = undefined) {
+        if (this.isDebug) {
+          if (position) console.log(position)
+          console.log(message)
+        }
       },
-      fileRead () {
-        // 更新文件信息
-        this.fileInfo.name = this.file.name
-        this.fileInfo.size = this.file.size
-        this.fileInfo.path = this.file.path
-        // 尝试读取文件
-        fs.readFile(this.file.path, 'utf8', (err, data) => {
-          if (err) {
-            this.fileMessage('读取文件错误，请检查文件是否被占用')
-            console.log(err)
-            return
-          }
-          // 处理读取的数据
-          this.fileContent = data
-          const lines = data.split('\n')
+      params16 (index) {
+        if (index === 0) return '第1级动叶前'
+        if (index % 2 === 1) return '第' + (index + 1) / 2 + '级动叶后'
+        else return '第' + index / 2 + '级静叶后'
+      },
+      contentConvert (content) {
+        // 获取文件信息
+        this.fileGetInfo()
+        // 尝试进行数据处理
+        let tmp = []
+        try {
+          const lines = content.split('\n')
           for (let i = 0; i < 14; i++) {
-            this.paramsData[i] = lines[i].split(' ').map(Number)
-            if (i === 2) this.paramsIZ = this.paramsData[i][0]
-            if (i === 13) this.paramsN = this.paramsData[i][3]
+            tmp[i] = lines[i].split(' ').map(Number)
+            if (i === 2) this.paramsIZ = tmp[i][0]
+            if (i === 13) this.paramsN = tmp[i][3]
           }
           let AN = [] // 读取转速百分比和流量系数计算初始点
           for (let i = 0; i < this.paramsN; i++) {
             AN.push(lines[14 + i].split(' '))
           }
-          this.paramsData[14] = AN
+          tmp[14] = AN
           AN = [] // 可调叶冠转动角数组
           for (let i = 0; i < this.paramsN; i++) {
             AN.push(lines[14 + this.paramsN + i].split(' '))
           }
-          this.paramsData[15] = AN
-          this.paramsPrepared = true
-          console.log(this.paramsData)
+          tmp[15] = AN
+          AN = [] // 级间引气参数数组
+          for (let i = 0; i < this.paramsN; i++) {
+            AN.push(lines[14 + this.paramsN * 2 + i].split(' '))
+          }
+          tmp[16] = AN
+        } catch (e) {
+          this.debug(e, '数据处理时出错')
+          this.fileMessage('读取文件时出错，请确认文件内容是否正确')
+          // 不显示数据
+          this.paramsPrepared = false
+          // 等待遮罩层关闭
+          this.loadingOverlay = false
+          return
+        }
+        this.paramsData = tmp
+        // 加载结束
+        this.loadingOverlay = false
+        this.paramsPrepared = true
+      },
+      fileCreate () {
+        // 检查两个数据是否正确
+        const check = /^[0-9]*$/
+        if (!check.test(this.fileCreateN) || !check.test(this.fileCreateZ)) {
+          this.fileMessage('输入的数据格式不对')
+          return
+        }
+        // 开始保存文件
+        const result = dialog.showSaveDialog({
+          title: '选择保存路径',
+          filters: [{name: '1DIVN File', extensions: ['1D']}]
         })
-        this.fileReadDisabled = true
+        if (result) {
+          // 加载等待
+          this.loadingOverlay = true
+          // 存储文件路径
+          this.filePath = result
+          // 创建初始文件字符串
+          const cz = nums => {
+            let res = ''
+            nums.forEach((num) => {
+              let tmp = []
+              for (let i = 0; i < num; i++) tmp[i] = 0
+              res += tmp.join(' ') + '\n'
+            })
+            return res
+          }
+          let fileString = ''
+          const n = parseInt(this.fileCreateN)
+          const z = parseInt(this.fileCreateZ)
+          fileString += cz([6, 6])
+          fileString += [z, 0, 0, 0, 0].join(' ') + '\n'
+          fileString += cz([(z + 1), (z + 1), z, z, z])
+          fileString += cz([5, 6, 6, 6, 5])
+          fileString += [0, 0, 0, n].join(' ') + '\n'
+          for (let i = 0; i < n; i++) fileString += cz([2])
+          for (let i = 0; i < n; i++) fileString += cz([(z + 1)])
+          for (let i = 0; i < n; i++) fileString += cz([(2 * z + 1)])
+          this.debug(fileString, '创建文件时生成的字符串')
+          this.contentConvert(fileString)
+          // 写入文件
+          fs.writeFile(result, fileString, 'utf8', (err) => {
+            if (err) {
+              this.fileMessage('创建文件失败，请检查文件是否被占用')
+              this.debug(err, '创建文件失败')
+              return
+            }
+            this.fileMessage('创建成功！')
+          })
+          // 关闭弹窗
+          this.fileCreateDialogEnabled = false
+        }
+      },
+      fileDelete () {
+        this.fileMessage('暂不支持删除功能')
+      },
+      fileGetInfo () {
+        // 文件信息获取
+        const f = fs.statSync(this.filePath)
+        this.fileSize = f.size
+      },
+      fileMessage (message) {
+        this.fileSnackbar = true
+        this.fileSnackbarText = message
+      },
+      fileRead () {
+        // 尝试读取文件
+        fs.readFile(this.filePath, 'utf8', (err, data) => {
+          if (err) {
+            this.fileMessage('读取文件错误，请检查文件是否被占用')
+            this.debug(err, '读取文件失败')
+            return
+          }
+          // 处理读取的数据
+          this.debug(data, '读取文件得到的数据')
+          this.contentConvert(data)
+        })
       },
       fileSave () {
         // 将数组转化为字符串
@@ -373,16 +526,44 @@
         for (let i = 0; i < this.paramsN; i++) {
           result += this.paramsData[15][i].join(' ') + '\n'
         }
-        console.log(result)
+        this.debug(result)
         // 写入当前文件
-        fs.writeFile(this.file.path, result, 'utf8', (err) => {
+        fs.writeFile(this.filePath, result, 'utf8', (err) => {
           if (err) {
             this.fileMessage('保存文件失败，请检查文件是否被占用')
-            console.log(err)
+            this.debug(err, '保存文件失败')
             return
           }
           this.fileMessage('保存成功！')
         })
+      },
+      fileSaveFor () {
+        // 选择保存路径
+        const result = dialog.showSaveDialog({
+          title: '选择保存路径',
+          filters: [{name: '1DIVN File', extensions: ['1D']}]
+        })
+        if (result) {
+          this.filePath = result
+          this.fileSave()
+          this.fileGetInfo()
+        }
+      },
+      fileSelect () {
+        const result = dialog.showOpenDialog({
+          title: '选择 1DIVN 输入文件',
+          filters: [{name: '1DIVN File', extensions: ['1D']}]
+        })
+        // 加载等待
+        this.loadingOverlay = true
+        if (result) {
+          // 更新文件信息
+          this.filePath = result[0]
+          this.fileRead()
+        } else {
+          // 等待结束
+          this.loadingOverlay = false
+        }
       },
       mountedOverlay () {
         const holder = document.getElementById('fileDragger')
@@ -410,8 +591,10 @@
             this.fileMessage('只能选择一个文件')
             return false
           }
-          this.file = files[0]
-          this.fileReadDisabled = false
+          this.filePath = files[0].path
+          // 加载等待
+          this.loadingOverlay = true
+          this.fileRead()
           return false
         }
       }
