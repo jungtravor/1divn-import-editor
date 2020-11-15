@@ -19,6 +19,42 @@ export default new Router({
       meta: {title: '输入文件'},
       component: require('@/components/input/index').default
     },
+    {
+      path: '/setting',
+      name: 'setting',
+      title: '设置',
+      meta: {title: '设置'},
+      component: require('@/components/setting/template').default,
+      children: [
+        {
+          path: '/setting',
+          name: 'setting_index',
+          title: '设置',
+          redirect: '/setting/input'
+        },
+        {
+          path: '/setting/input',
+          name: 'setting_input',
+          title: '设置 - 输入文件',
+          meta: {icon: 'mdi-application-import', title: '输入文件'},
+          component: require('@/components/setting/input/index').default
+        },
+        {
+          path: '/setting/test',
+          name: 'setting_test',
+          title: '设置 - 测试',
+          meta: {icon: 'mdi-application-import', title: '测试'},
+          component: require('@/components/setting/test').default
+        },
+        {
+          path: '/setting/info',
+          name: 'setting_info',
+          title: '设置 - 关于',
+          meta: {icon: 'mdi-information-outline', title: '关于'},
+          component: require('@/components/setting/info').default
+        }
+      ]
+    },
     /* {
       path: '/landingPage',
       name: 'landing-page',
