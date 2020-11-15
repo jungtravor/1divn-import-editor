@@ -6,6 +6,7 @@ import '@/assets/variables.scss'
 import App from './App'
 import router from './router'
 import store from './store'
+import FileDrags from './components/common/FileDrags'
 
 if (!process.env.IS_WEB) Vue.use(require('vue-electron'))
 Vue.http = Vue.prototype.$http = axios
@@ -23,6 +24,7 @@ Vue.mixin({
   }
 })
 /* eslint-disable no-new */
+Vue.component('file-drag', FileDrags)
 new Vue({
   components: { App },
   router,
