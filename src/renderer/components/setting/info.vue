@@ -28,8 +28,6 @@
 </template>
 
 <script>
-  const { remote } = require('electron')
-  const path = require('path')
   export default {
     name: 'info',
     data () {
@@ -38,10 +36,8 @@
       }
     },
     created () {
-      let appPath = remote.app.getPath('exe')
-      let appDirPath = path.dirname(appPath)
-      this.infoItems.push({name: 'Executable File Name', value: appPath})
-      this.infoItems.push({name: 'Executable File Path', value: appDirPath})
+      this.infoItems.push({name: 'Executable File Name', value: this.getExecPath()})
+      this.infoItems.push({name: 'Executable File Path', value: this.getRootDirPath()})
     }
   }
 </script>

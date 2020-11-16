@@ -14,12 +14,22 @@ Vue.config.productionTip = false
 
 // window.$ = window.jQuery = require('jquery')
 
+const { remote } = require('electron')
+const path = require('path')
+
 Vue.mixin({
   methods: {
     copy (obj) {
       const s = JSON.stringify(obj)
       if (s === '{}') return undefined
       return JSON.parse(JSON.stringify(obj))
+    },
+    getRootDirPath () {
+      let appPath = remote.app.getPath('exe')
+      return path.dirname(appPath)
+    },
+    getExecPath () {
+      return remote.app.getPath('exe')
     }
   }
 })

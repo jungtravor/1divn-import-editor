@@ -33,7 +33,9 @@
       uid: String,
       title: String,
       text: String,
-      overlayText: String
+      overlayText: String,
+      dialogTitle: String,
+      dialogFilters: Array
     },
     name: 'FileDrags',
     methods: {
@@ -79,8 +81,10 @@
       },
       fileSelect () {
         const result = dialog.showOpenDialog({
-          title: '选择 1DIVN 输入文件',
-          filters: [{name: '1DIVN File', extensions: ['1D']}]
+          // title: '选择 1DIVN 输入文件',
+          // filters: [{name: '1DIVN File', extensions: ['1D']}]
+          title: this.propSlot.dialogTitle,
+          filters: this.propSlot.dialogFilters
         })
         if (result) {
           // 更新文件信息
@@ -105,7 +109,9 @@
         propSlot: {
           title: '添加文件',
           text: '拖动文件到此处以添加文件',
-          overlayText: '松开鼠标以添加'
+          overlayText: '松开鼠标以添加',
+          dialogTitle: '选择文件',
+          dialogFilters: []
         }
       }
     },
@@ -116,11 +122,13 @@
         console.log('Warning: You\'d better use uid to make sure all file-drag component are unique.')
       }
       function props (t, prop) {
-        if (t[prop] && t[prop] !== '') t.propSlot[prop] = t[prop]
+        if (t[prop] && t[prop] !== '' && t[prop] !== []) t.propSlot[prop] = t[prop]
       }
       props(this, 'title')
       props(this, 'text')
       props(this, 'overlayText')
+      props(this, 'dialogTitle')
+      props(this, 'dialogFilters')
     },
     mounted () {
       this.mountedOverlay()
