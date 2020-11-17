@@ -62,17 +62,25 @@
           // 调用读取文件函数
           const files = e.dataTransfer.files
           if (files.length > 1) {
-            this.fileMessage('只能选择一个文件')
             this.$emit('file-in', {
-              filePath: this.filePath,
+              filePath: '',
               message: '只能选择一个文件',
               result: 2
             })
             return false
           }
-          this.filePath = files[0].path
+          let filePath = files[0].path
+          let { ext } = this.getFileNameAndExt(filePath)
+          if (ext.toLowerCase() !== '.1dc') {
+            this.$emit('file-in', {
+              filePath: '',
+              message: '文件后缀错误',
+              result: 3
+            })
+            return false
+          }
           this.$emit('file-in', {
-            filePath: this.filePath,
+            filePath: filePath,
             message: '',
             result: 0
           })
@@ -81,21 +89,19 @@
       },
       fileSelect () {
         const result = dialog.showOpenDialog({
-          // title: '选择 1DIVN 输入文件',
-          // filters: [{name: '1DIVN File', extensions: ['1D']}]
           title: this.propSlot.dialogTitle,
           filters: this.propSlot.dialogFilters
         })
         if (result) {
           // 更新文件信息
-          this.filePath = result[0]
+          let filePath = result[0]
           this.$emit('file-in', {
-            filePath: this.filePath,
+            filePath: filePath,
             result: 0
           })
         } else {
           this.$emit('file-in', {
-            filePath: this.filePath,
+            filePath: '',
             message: '文件未选择',
             result: 1
           })

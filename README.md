@@ -42,6 +42,7 @@ This project was generated with [electron-vue](https://github.com/SimulatedGREG/
 | name        | String | 配置文件标题 |
 | author      | String | 配置文件作者 |
 | description | String | 配置文件说明 |
+| version     | String | 配置文件版本 |
 | configs     | array  | 参数定义     |
 
 ### config 键值
@@ -71,7 +72,7 @@ configs 数组中的每个 JSON 对象均是一个参数的说明，配置文件
 ```JSON
 {
 	"name": "Default Config",
-    "version": "0.0.1",
+	"version": "0.0.1",
 	"author": "jungtravor",
 	"description": "1DIVN Input File Editor",
 	"configs": [
@@ -112,8 +113,11 @@ configs 数组中的每个 JSON 对象均是一个参数的说明，配置文件
             "dimension": 2,
             "length": ["Z", 2],
 			"labels": [
-				"第&i条特性线",
-                ["转速百分比", "流量系数计算初始点"]
+                "第&i条特性线",
+                [
+                    "转速百分比",
+                    "流量系数计算初始点"
+                ]
 			],
             "vertical": 1,
 			"row": 2
@@ -123,6 +127,14 @@ configs 数组中的每个 JSON 对象均是一个参数的说明，配置文件
 ```
 
 
+
+# 全局方法
+
+## 1、getConfigs
+
+返回值为 JSON 对象，包含 result 和 err 字段
+
+err 包括 code 和 message 字段，code 大于 0 时表示出现错误且无法继续，小于 0 时表示过程出现差错但无伤大雅。
 
 # Vue 组件说明
 
@@ -170,4 +182,5 @@ file-in 事件接受一个 JSON 参数：
 | 0      | (空)             |
 | 1      | 文件未选择       |
 | 2      | 只能选择一个文件 |
+| 3      | 文件后缀不符合   |
 

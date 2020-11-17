@@ -69,6 +69,6 @@
   #app {
     /*font-family: "Hiragino Sans GB W3", sans-serif;*/
     font-family: "Manrope", "Hiragino Sans GB W6";
-    background-color: #26a69a;
+    background-color: #F9F6EF;
   }
 </style>

@@ -1,8 +1,9 @@
 <template>
-    <v-card height="100%">
+    <v-container fluid height="100%">
         <v-navigation-drawer
                 absolute
                 permanent
+                color="secondary"
                 width="256px"
                 style="background-color: transparent"
         >
@@ -33,7 +34,7 @@
         <v-container style="padding-left: 268px;" fluid>
             <router-view></router-view>
         </v-container>
-    </v-card>
+    </v-container>
 </template>
 
 <script>

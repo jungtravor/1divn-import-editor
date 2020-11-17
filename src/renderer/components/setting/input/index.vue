@@ -11,16 +11,14 @@
                         text
                         v-bind="attrs"
                         @click="MessageShow = false"
-                >
-                    关闭
-                </v-btn>
+                >关闭</v-btn>
             </template>
         </v-snackbar>
         <h1>输入文件配置管理</h1>
         <v-row>
             <v-col cols="6">
                 <v-card height="100%">
-                    <v-card-title>当前配置文件：{{ activeConfig.name }}</v-card-title>
+                    <v-card-title>默认配置文件：{{ activeConfig.name }}</v-card-title>
                     <v-card-text v-if="activeConfig.name !== '无'">
                         <h3 style="margin-bottom: 4px">作者：{{ activeConfig.author }}，
                             版本：{{ activeConfig.version }}</h3>
@@ -34,11 +32,23 @@
                         title="添加配置文件"
                         dialog-title="选择 1DIVN 输入配置文件"
                         :dialog-filters="[{name: '1DIVN Config File', extensions: ['1DC']}]"
-                        v-on:file-in="getFilePath"
+                        v-on:file-in="addNewConfig"
                 ></file-drag>
             </v-col>
         </v-row>
         <v-card>
+            <v-dialog v-model="deleteDialog" width="500" >
+                <v-card>
+                    <v-card-title>删除配置文件</v-card-title>
+                    <v-card-text>是否要删除这个配置文件？</v-card-text>
+                    <v-divider></v-divider>
+                    <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn color="primary" text @click="deleteDialog = false">否</v-btn>
+                        <v-btn color="red lighten-1" text @click="deleteConfig">是</v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
             <v-card-title>
                 配置文件列表
                 <v-btn icon color="primary" style="margin-left: 4px" @click="getConfigs(1)">
@@ -54,12 +64,12 @@
             </v-card-title>
             <v-divider></v-divider>
             <v-list flat>
-                <v-list-item
-                        v-for="(item, i) in configs"
-                        :key="i"
-                >
+                <v-list-item v-for="(item, i) in configs" :key="i" >
                     <v-list-item-icon>
-                        <v-icon v-if="i===configSelected" color="green">mdi-check-bold</v-icon>
+                        <v-icon
+                                v-if="i===configSelected && activeConfig.name !== '无'"
+                                color="green"
+                        >mdi-check-bold</v-icon>
                     </v-list-item-icon>
                     <v-list-item-content>
                         <v-row style="padding: 0 16px 0 32px">
@@ -77,7 +87,11 @@
                             >
                                 <v-icon color="blue lighten-1">mdi-check</v-icon>
                             </v-btn>
-                            <v-btn icon :disabled="!configEditing">
+                            <v-btn
+                                    icon
+                                    :disabled="!configEditing"
+                                    @click="showDeleteDialog(i)"
+                            >
                                 <v-icon color="red lighten-1">mdi-delete</v-icon>
                             </v-btn>
                         </v-row>
@@ -102,7 +116,9 @@
         MessageColor: 'primary',
         MessageShow: false,
         MessageText: '',
-        fileAdderOverlay: false
+        fileAdderOverlay: false,
+        deleteDialog: false,
+        deleteConfigIndex: 0
       }
     },
     methods: {
@@ -116,103 +132,92 @@
         this.MessageShow = true
         this.MessageText = text
       },
-      getFilePath (event) {
-        console.log(event)
-      },
-      getConfigs (refresh) {
-        let configDir = this.getRootDirPath() + '\\configs'
-        let configFile = configDir + '\\config'
-        if (!fs.existsSync(configDir)) fs.mkdirSync(configDir)
-        if (!fs.existsSync(configFile)) {
-          let initJSON = { activated: '' }
-          let flag = 0
-          try {
-            fs.writeFileSync(configFile, JSON.stringify(initJSON))
-          } catch (e) {
-            this.errorMessage('无法写入配置，请检查文件夹权限')
-            flag = 1
-            console.log(e)
-          }
-          if (flag) return
-        }
-        // 读取配置文件
-        let configContent = fs.readFileSync(configFile, 'utf8')
-        let configJSON = {}
-        try {
-          configJSON = JSON.parse(configContent)
-        } catch (e) {
-          console.log(e)
-          this.errorMessage('配置文件读取错误')
+      addNewConfig (res) {
+        let { filePath, message, result } = res
+        if (result) {
+          this.errorMessage(message)
           return
         }
-        this.config = configJSON
-        // 读取目录下文件
-        let dirInfo = fs.readdirSync(configDir)
-        let configsInfo = []
-        dirInfo.forEach((value) => {
-          let configPath = configDir + '\\' + value
-          let stat = fs.statSync(configPath)
-          if (!stat.isFile()) return
-          if (((value + 'a').slice(-5, -1)).toLowerCase() !== '.1dc') return
-          if (stat.size === 0) return
-          // 读取配置基本信息
-          let tmp = fs.readFileSync(configPath, 'utf8')
-          let tmpJSON = {}
-          let flag = 0
-          try {
-            tmpJSON = JSON.parse(tmp)
-            tmpJSON = {
-              name: tmpJSON.name,
-              description: tmpJSON.description,
-              author: tmpJSON.author,
-              version: tmpJSON.version,
-              status: 0
+        // 检查配置文件冲突
+        try {
+          let newConfig = fs.readFileSync(filePath, 'utf8')
+          let { name, version, author } = JSON.parse(newConfig)
+          this.configs.forEach((value) => {
+            if (value.name === name && value.version === version && value.author === author) {
+              throw new Error('exists')
             }
-          } catch (e) {
-            flag = 1
-            console.log(e)
-          }
-          // 检查配置信息
-          if (flag) return
-          if (tmpJSON.name === '无') {
-            this.errorMessage('有至少一个配置的名字为“无”，这是不允许的，因此文件已被排除。')
-            return
-          }
-          if (tmpJSON.name === configJSON.name && tmpJSON.version === configJSON.version) {
-            tmpJSON.status = 1
-            this.activeConfig = tmpJSON
-          }
-          // 添加配置
-          configsInfo.push(tmpJSON)
-        })
-        this.configs = configsInfo
-        this.configs.forEach((value, index) => {
-          if (value.name === this.activeConfig.name && value.version === this.activeConfig.version) {
-            this.configSelected = index
-          }
-        })
-        if (refresh) this.showMessage('配置文件刷新成功！')
+          })
+        } catch (e) {
+          if (e.message === 'exists') this.errorMessage('与现有配置文件发生冲突，添加失败')
+          this.errorMessage('无法读取文件，添加失败')
+          return
+        }
+        // 检查并生成随机文件名
+        let fileName = this.getFileBaseNameFromPath(filePath)
+        let configDir = this.getRootDirPath() + '\\configs'
+        let dirInfo = fs.readdirSync(configDir)
+        let { name, ext } = this.getFileNameAndExt(fileName)
+        name = this.hash(8)
+        while (dirInfo.includes(name + ext)) {
+          name = this.hash(8)
+        }
+        // 拷贝文件到config目录
+        fileName = configDir + '\\' + name + ext
+        try {
+          fs.copyFileSync(filePath, fileName)
+        } catch (e) {
+          this.errorMessage('无法复制文件，请检查文件夹权限')
+          return
+        }
+        this.getConfigs(0)
+      },
+      getConfigs (refresh) {
+        let { result, err } = this.input_getConfigs()
+        if (err.code) {
+          this.errorMessage(err.message)
+          if (err.code > 0) return
+        }
+        this.activeConfig = result.activatedConfig
+        this.configSelected = result.activatedIndex
+        this.config = result.config
+        this.configs = result.configs
+        if (refresh) this.showMessage('配置文件更新完成')
+        console.log(result)
       },
       selectConfig (index) {
-        let configFile = this.getRootDirPath() + '\\configs\\config'
-        let configString = JSON.stringify({
-          name: this.configs[index].name,
-          version: this.configs[index].version
-        })
-        fs.writeFile(configFile, configString, (err) => {
+        this.input_updateConfig(this.configs[index], (err) => {
           if (err) {
             this.errorMessage('无法写入配置文件，请检查文件权限')
             console.log(err)
           } else {
             this.activeConfig = this.configs[index]
             this.configSelected = index
+            this.input.defaultConfig = this.configs[index]
             this.showMessage('配置更新成功')
           }
         })
+      },
+      showDeleteDialog (index) {
+        this.deleteConfigIndex = index
+        this.deleteDialog = true
+      },
+      deleteConfig () {
+        this.deleteDialog = false
+        let { file } = this.configs[this.deleteConfigIndex]
+        try {
+          fs.unlinkSync(file)
+        } catch (e) {
+          this.errorMessage(e.message)
+          return
+        }
+        this.showMessage('已成功删除')
+        this.getConfigs(0)
       }
     },
-    created () {
-      this.getConfigs(0)
+    beforeRouteEnter (to, from, next) {
+      next(vm => {
+        vm.getConfigs(0)
+      })
     }
   }
 </script>

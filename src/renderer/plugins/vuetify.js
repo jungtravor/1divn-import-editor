@@ -13,8 +13,10 @@ const opts = {
   theme: {
     themes: {
       light: {
-        primary: colors.teal.lighten1,
-        secondary: '#21bfa1'
+        primary: '#8B91AB',
+        secondary: '#D9E1EB',
+        third: '#EBDAC9',
+        fourth: '#F9F6EF'
       },
       dark: {
         primary: colors.teal.lighten1
