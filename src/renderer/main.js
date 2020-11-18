@@ -47,6 +47,19 @@ Vue.mixin({
         ext: ext
       }
     },
+    getFileSize (fileName, format = true) {
+      let stat = fs.statSync(fileName)
+      let size = stat.size
+      if (format) {
+        let sf = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
+        let i = 0
+        while (size > Math.pow(1024, i + 1)) i++
+        size = (size / Math.pow(1024, i)).toString() + sf[i]
+      } else {
+        size = size.toString() + 'B'
+      }
+      return size
+    },
     input_getConfigs (callback) {
       let result = {
         config: {},

@@ -29,7 +29,7 @@ This project was generated with [electron-vue](https://github.com/SimulatedGREG/
 
 # 输入文件
 
-1DIVN 程序的输入文件包含很多参数，而且经过改动的程序对输入文件要求也不尽相同，因此通过一个配置文件来定义输入文件内参数及其位置范围。
+1DIVN 程序的输入文件包含很多参数，而且经过改动的程序对输入文件要求也不尽相同，因此需要通过一个配置文件来定义输入文件内参数及其位置范围。
 
 ## 配置文件
 
@@ -43,11 +43,11 @@ This project was generated with [electron-vue](https://github.com/SimulatedGREG/
 | author      | String | 配置文件作者 |
 | description | String | 配置文件说明 |
 | version     | String | 配置文件版本 |
-| configs     | array  | 参数定义     |
+| rules       | array  | 参数定义     |
 
-### config 键值
+### rules 键值
 
-configs 数组中的每个 JSON 对象均是一个参数的说明，配置文件中必须包含这个参数的名称、类型和所在行。以下是对于 config 对象的一些说明：
+rules 数组中的每个 JSON 对象均是一个参数的说明，配置文件中必须包含这个参数的名称、类型和所在行。以下是对于 rule 对象的一些说明：
 
 - 参数名称不可以重复，不可以使用特殊符号。
 - 对于同一行的不同参数，在数组中的先后顺序是十分重要的，这个顺序决定了参数的前后位置。
@@ -57,13 +57,13 @@ configs 数组中的每个 JSON 对象均是一个参数的说明，配置文件
 
 | 键名        | 必填 | 类型   | 默认值 | 说明                                                         |
 | ----------- | ---- | ------ | ------ | ------------------------------------------------------------ |
-| var         | 是   | String |        | 参数名称                                                     |
+| varName     | 是   | String |        | 参数名称                                                     |
 | description |      | String | (空)   | 参数说明                                                     |
-| type        | 是   | String |        | 参数类型，可选 'number' 或 'float'                           |
-| row         | 是   | Number |        | 参数所在行的相对位置                                         |
+| type        | 是   | String | float  | 参数类型，可选 'number' 或 'float'                           |
+| row         | 是   | Number |        | 参数所在行的相对位置，第一个参数的 row 值为1                 |
 | width       |      | Number | 1      | 参数显示宽度所占比例，总宽度为12                             |
 | dimension   |      | Number | 0      | 参数所占维度，最多支持二维数组                               |
-| vertical    |      | Bool   | false  | 仅适用于dimension大于0的情况，规定了不同维度的参数是否以垂直方式显示 |
+| vertical    |      | Bool   | false  | 仅适用于dimension大于1的情况，规定了不同维度的参数是否以垂直方式显示 |
 | length      |      | Array  | [1]    | 参数在不同维度的数量。数组中若只有一个元素且为1，则表示该参数只有一个；否则表示一维数组下的参数数量 |
 | labels      |      | Array  |        | 参数在不同维度下的说明，用 `&i` 、 `&j` 来表示第一、二维度的索引 |
 
@@ -75,30 +75,30 @@ configs 数组中的每个 JSON 对象均是一个参数的说明，配置文件
 	"version": "0.0.1",
 	"author": "jungtravor",
 	"description": "1DIVN Input File Editor",
-	"configs": [
+	"rules": [
 		{
-			"var": "N",
+			"varName": "N",
 			"description": "压气机级数",
 			"type": "number",
 			"row": 1,
 			"width": 2
 		},
 		{
-			"var": "Z",
+			"varName": "Z",
 			"description": "特性线数量",
 			"type": "number",
 			"row": 1,
 			"width": 2
 		},
 		{
-			"var": "P1",
+			"varName": "P1",
 			"description": "进口总压",
 			"type": "float",
 			"row": 1,
 			"width": 2
 		},
 		{
-			"var": "AH1",
+			"varName": "AH1",
 			"description": "每级压头损耗系数",
             "dimension": 1,
             "length": ["N"],
@@ -108,7 +108,7 @@ configs 数组中的每个 JSON 对象均是一个参数的说明，配置文件
 			"row": 2
 		},
 		{
-			"var": "AN",
+			"varName": "AN",
 			"description": "特性线的转速百分比及流量系数计算初始点",
             "dimension": 2,
             "length": ["Z", 2],

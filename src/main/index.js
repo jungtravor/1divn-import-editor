@@ -14,6 +14,10 @@ let mainWindow
 const winURL = process.env.NODE_ENV === 'development'
   ? `http://localhost:9080`
   : `file://${__dirname}/index.html`
+/**
+ * 设置不进行安全提醒
+ */
+process.env.ELECTRON_DISABLE_SECURITY_WARNINGs = 'true'
 
 function createWindow () {
   /**

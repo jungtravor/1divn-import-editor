@@ -59,7 +59,6 @@
         overlay.ondrop = (e) => {
           e.preventDefault()
           this.fileAdderOverlay = false
-          // 调用读取文件函数
           const files = e.dataTransfer.files
           if (files.length > 1) {
             this.$emit('file-in', {
@@ -69,20 +68,34 @@
             })
             return false
           }
+          // 检查后缀名
           let filePath = files[0].path
           let { ext } = this.getFileNameAndExt(filePath)
-          if (ext.toLowerCase() !== '.1dc') {
-            this.$emit('file-in', {
-              filePath: '',
-              message: '文件后缀错误',
-              result: 3
-            })
-            return false
-          }
+          if (ext.startsWith('.')) ext = ext.substr(1)
+          let found = false
+          this.dialogFilters.some((value) => {
+            if (value.extensions) {
+              value.extensions.some((extension) => {
+                if (ext.toLowerCase() === extension.toLowerCase()) {
+                  // 返回正确结果
+                  this.$emit('file-in', {
+                    filePath: filePath,
+                    message: '',
+                    result: 0
+                  })
+                  // 退出所有循环
+                  found = true
+                  return true
+                }
+              })
+              return found
+            }
+          })
+          if (found) return false
           this.$emit('file-in', {
-            filePath: filePath,
-            message: '',
-            result: 0
+            filePath: '',
+            message: '文件后缀错误',
+            result: 3
           })
           return false
         }

@@ -169,6 +169,7 @@
           this.errorMessage('无法复制文件，请检查文件夹权限')
           return
         }
+        console.log('new config added')
         this.getConfigs(0)
       },
       getConfigs (refresh) {
@@ -181,8 +182,8 @@
         this.configSelected = result.activatedIndex
         this.config = result.config
         this.configs = result.configs
+        this.input.configs = result.configs
         if (refresh) this.showMessage('配置文件更新完成')
-        console.log(result)
       },
       selectConfig (index) {
         this.input_updateConfig(this.configs[index], (err) => {
@@ -211,6 +212,7 @@
           return
         }
         this.showMessage('已成功删除')
+        console.log('deleteConfig success')
         this.getConfigs(0)
       }
     },
