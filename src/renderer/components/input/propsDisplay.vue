@@ -1,27 +1,48 @@
 <template>
-    <v-container fluid>
-        <h1>参数设定</h1>
-        <v-container
-                v-for="(label, index1) in varLabels"
-                :key="index1"
-        >
-            <h2 v-if="label.length !== 1 || !label[0].length">第 {{ index1+1 }} 项</h2>
-            <h2 v-if="label.length === 1 && label[0].length">{{ label[0].description }}</h2>
-            <v-row>
-                <v-col
-                        v-for="item in label"
-                        :key="item.varName"
-                        :cols="item.width"
+    <v-container fluid style="padding: 16px">
+        <h1 style="margin-bottom: 4px">参数设定</h1>
+        <v-row>
+            <v-col
+                    v-for="(label, index1) in varLabels"
+                    :key="index1"
+                    :cols="label.width"
+                    style="padding-top: 0;padding-bottom: 0"
+            >
+                <div v-if="!label.vertical">
+                    <h2 class="column-title">{{ label.description }}</h2>
+                    <v-row>
+                        <v-col
+                                v-for="(item, index2) in label.labels"
+                                :key="item.varName"
+                                :cols="item.width"
+                        >
+                            <v-text-field
+                                    outlined
+                                    v-model="varData[index1][index2]"
+                                    :label="item.description"
+                                    :placeholder="item.varName"
+                            ></v-text-field>
+                        </v-col>
+                    </v-row>
+                </div>
+                <h2 v-if="label.first" class="first-vertical-title">{{label.description}}</h2>
+                <h3
+                        v-if="label.vertical"
+                        v-bind:class="['column-title', label.labels[0].verticalCount <= 12 ? 'first-vertical-subtitle' : '']"
                 >
-                    <v-text-field
-                            outlined
-                            v-model="item.value"
-                            :label="item.description"
-                            :placeholder="item.varName"
-                    ></v-text-field>
-                </v-col>
-            </v-row>
-        </v-container>
+                    {{ label.subtitle }}
+                </h3>
+                <v-text-field
+                        v-if="label.vertical"
+                        v-for="(item, index2) in label.labels"
+                        v-bind:class="index2 ? '' : 'first-vertical-textField'"
+                        outlined
+                        v-model="varData[index1][index2]"
+                        :label="item.description"
+                        :placeholder="item.varName"
+                ></v-text-field>
+            </v-col>
+        </v-row>
     </v-container>
 </template>
 
@@ -29,7 +50,8 @@
   export default {
     props: {
       rules: Array,
-      fileContent: String
+      fileContent: String,
+      loadingOverlay: Boolean
     },
     name: 'propsDisplay',
     data () {
@@ -51,17 +73,38 @@
       },
       setArray () {
         console.log(this.rules)
-        function pushInLabels (t, i, item) {
-          while (!t.varLabels[i]) t.varLabels.push([])
-          t.varLabels[i].push(item)
+        // 在 varLabels 的第 i 个数组中推入对象
+        function pushInLabels (t, i, item, single = true, description = '', vertical = false, subtitle = '', width = 12, first = false) {
+          if (!t.varLabels[i]) {
+            // 创建行对象
+            if (single) {
+              t.varLabels.push({
+                description: '第' + (i + 1).toString() + '项',
+                labels: [],
+                vertical,
+                width
+              })
+            } else {
+              let des = description === '' ? '第' + (i + 1).toString() + '项' : description
+              t.varLabels.push({
+                description: des,
+                labels: [],
+                vertical,
+                first,
+                width: vertical ? width : 12,
+                subtitle: subtitle === '' ? undefined : subtitle
+              })
+            }
+          }
+          t.varLabels[i].labels.push(item)
         }
         let lastRow = 1
-        let indexOfArray = 0
+        let index1 = 0
         let index2 = 0
         try {
           this.rules.forEach(rule => {
             let { varName, description, type, row, width, dimension, length, labels, vertical } = rule
-            if (!width) width = 1
+            if (!width) width = 2
             if (!dimension) {
               /**
                * 单变量，计入动态变量
@@ -75,36 +118,31 @@
                 description: description,
                 width: width
               }
-              let val
-              // 处理行指针
+              // 行指针预处理
               if (row !== lastRow) {
                 // 下一行
-                indexOfArray++
+                index1++
                 index2 = 0
-                val = this.varData[indexOfArray][0]
-              } else {
-                // 添加至本行
                 lastRow = row
-                val = this.varData[indexOfArray][index2++]
               }
+              // 插入 varLabels 数组
+              pushInLabels(this, index1, item)
               // 处理数据类型
-              if (type === 'number') this.globalVars[varName] = parseInt(val)
-              else this.globalVars[varName] = parseFloat(val)
-              // 推入标签数组
-              pushInLabels(this, indexOfArray, item)
+              let value
+              if (type === 'number') value = parseInt(this.varData[index1][index2])
+              else value = parseFloat(this.varData[index1][index2])
+              // 更新数据
+              this.globalVars[varName] = value
+              this.varData[index1][index2] = value
+              // 行指针后处理
+              index2++
             } else if (dimension === 1) {
               /**
                * 一维数组变量
                */
-              let item = {
-                varName: varName,
-                description: description,
-                dimension: 1,
-                width: width,
-                length: length,
-                labels: []
-              }
-              // 计算长度
+              // 行指针预处理
+              index1++
+              // 计算数组长度
               let len = 0
               length.forEach(value => {
                 if (isNaN(value)) {
@@ -115,34 +153,35 @@
                   len += value
                 }
               })
-              item.length = len
               // 计算标签
+              let itemLabels = []
               let labelTemplate = labels[0]
-              if (Array.isArray(labelTemplate)) item.labels = labelTemplate
+              if (Array.isArray(labelTemplate)) itemLabels = labelTemplate
               else {
                 let keyword = '&i'
                 for (let i = 0; i < len; i++) {
-                  item.labels.push(labelTemplate.replace(keyword, (i + 1).toString()))
+                  itemLabels.push(labelTemplate.replace(keyword, (i + 1).toString()))
                 }
               }
-              // 更新行指针
-              indexOfArray++
-              index2 = 0
               // 推入标签数组
-              pushInLabels(this, indexOfArray, item)
+              for (let i = 0; i < len; i++) {
+                let item = {
+                  varName: varName,
+                  description: description,
+                  width: width
+                }
+                item.varName = varName + '(' + (i + 1).toString() + ')'
+                item.description = itemLabels[i]
+                pushInLabels(this, index1, item, false, description)
+              }
+              // 行指针后处理
+              index2 = 0
             } else if (dimension === 2) {
               /**
                * 二维数组变量
                */
-              let item = {
-                varName: varName,
-                description: description,
-                dimension: 2,
-                width: width,
-                length: length,
-                labels: [],
-                vertical: vertical
-              }
+              // 行指针预处理
+              index1++
               // 计算长度
               let len = [0, 0]
               len = length.map(lenTmp => {
@@ -156,10 +195,8 @@
                 })
                 return tmp
               })
-              item.length = len
               // 计算标签
-              let labelTemplates = labels
-              item.labels = labelTemplates.map((value, index) => {
+              let itemLabels = labels.map((value, index) => {
                 if (Array.isArray(value)) return value
                 else {
                   let tmp = []
@@ -170,17 +207,34 @@
                   return tmp
                 }
               })
-              // 更新行指针
-              indexOfArray++
-              index2 = 0
               // 推入标签数组
-              pushInLabels(this, indexOfArray, item)
+              for (let i = 0; i < len[0]; i++) {
+                let subtitle = itemLabels[0][i]
+                for (let j = 0; j < len[1]; j++) {
+                  let item = {
+                    varName: varName,
+                    description: description,
+                    width: width,
+                    verticalCount: i * width
+                  }
+                  item.varName = varName + '(' + (i + 1).toString() + ',' + (j + 1).toString() + ')'
+                  item.description = itemLabels[1][j]
+                  item.subtitle = subtitle
+                  let first = i === 0
+                  pushInLabels(this, index1, item, false, description, vertical, itemLabels[0][i], width, first)
+                }
+                index1++
+              }
+              // 行指针后处理
+              index2 = 0
             }
           })
         } catch (e) {
           this.$emit('error-raise', e.message)
           console.log('read data error', e)
         }
+        // 完成
+        this.$emit('loading-finished')
         console.log(this.globalVars)
         console.log(this.varLabels)
         console.log(this.varData)
@@ -204,5 +258,22 @@
 </script>
 
 <style scoped>
+    .first-vertical-subtitle {
+        padding-top: 36px;
+    }
+    .first-vertical-textField {
+        padding-top: 4px;
+    }
+    .first-vertical-title {
+        position: absolute;
+    }
+    .non-vertical-column {
 
+    }
+    .column-container {
+        padding: 0 12px
+    }
+    .column-title {
+        margin-bottom: 4px
+    }
 </style>

@@ -1,5 +1,8 @@
 <template>
     <v-container>
+        <v-overlay :value="loadingOverlay">
+            <v-progress-circular indeterminate size="64"></v-progress-circular>
+        </v-overlay>
         <v-snackbar
                 v-model="MessageShow"
                 :color="MessageColor"
@@ -21,6 +24,7 @@
                         title="选择输入文件"
                         dialog-title="选择 1DIVN 输入文件"
                         :dialog-filters="[{name: '1DIVN File', extensions: ['1D']}]"
+                        :loading-finished="loadingOverlay = false"
                         v-on:file-in="fileSelect"
                 ></file-drag>
             </v-col>
@@ -102,7 +106,8 @@
         },
         MessageColor: 'primary',
         MessageShow: false,
-        MessageText: ''
+        MessageText: '',
+        loadingOverlay: false
       }
     },
     methods: {
@@ -117,6 +122,7 @@
         this.MessageText = text
       },
       fileSelect (res) {
+        this.loadingOverlay = true
         let { filePath, message, result } = res
         // 检查传入数据
         if (result) {

@@ -61,7 +61,7 @@ rules 数组中的每个 JSON 对象均是一个参数的说明，配置文件�
 | description |      | String | (空)   | 参数说明                                                     |
 | type        | 是   | String | float  | 参数类型，可选 'number' 或 'float'                           |
 | row         | 是   | Number |        | 参数所在行的相对位置，第一个参数的 row 值为1                 |
-| width       |      | Number | 1      | 参数显示宽度所占比例，总宽度为12                             |
+| width       |      | Number | 2      | 参数显示宽度所占比例，总宽度为12                             |
 | dimension   |      | Number | 0      | 参数所占维度，最多支持二维数组                               |
 | vertical    |      | Bool   | false  | 仅适用于dimension大于1的情况，规定了不同维度的参数是否以垂直方式显示 |
 | length      |      | Array  | [1]    | 参数在不同维度的数量。数组中若只有一个元素且为1，则表示该参数只有一个；否则表示一维数组下的参数数量 |
