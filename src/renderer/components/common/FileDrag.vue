@@ -58,6 +58,7 @@
         }
         overlay.ondrop = (e) => {
           e.preventDefault()
+          this.$emit('loading-start')
           this.fileAdderOverlay = false
           const files = e.dataTransfer.files
           if (files.length > 1) {

@@ -20,13 +20,6 @@ export default new Router({
       component: require('@/components/input/index').default
     },
     {
-      path: '/import',
-      name: 'import',
-      title: '输入文件（旧）',
-      meta: {title: '输入文件（旧）'},
-      component: require('@/components/import/index').default
-    },
-    {
       path: '/setting',
       name: 'setting',
       title: '设置',

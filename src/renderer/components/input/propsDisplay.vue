@@ -6,15 +6,16 @@
                     v-for="(label, index1) in varLabels"
                     :key="index1"
                     :cols="label.width"
-                    style="padding-top: 0;padding-bottom: 0"
+                    class="column-container"
             >
-                <div v-if="!label.vertical">
+                <div v-if="!label.subtitle">
                     <h2 class="column-title">{{ label.description }}</h2>
                     <v-row>
                         <v-col
                                 v-for="(item, index2) in label.labels"
                                 :key="item.varName"
                                 :cols="item.width"
+                                class="column-container"
                         >
                             <v-text-field
                                     outlined
@@ -25,16 +26,40 @@
                         </v-col>
                     </v-row>
                 </div>
-                <h2 v-if="label.first" class="first-vertical-title">{{label.description}}</h2>
+                <h2 v-if="label.first && label.subtitle" class="first-vertical-title">{{label.description}}</h2>
                 <h3
-                        v-if="label.vertical"
+                        v-if="label.subtitle && label.vertical"
                         v-bind:class="['column-title', label.labels[0].verticalCount <= 12 ? 'first-vertical-subtitle' : '']"
                 >
                     {{ label.subtitle }}
                 </h3>
+                <h3
+                        v-if="label.subtitle && !label.vertical"
+                        v-bind:class="['column-subtitle', label.first ? 'first-vertical-subtitle' : '']"
+                >
+                    {{ label.subtitle }}
+                </h3>
+                <div v-if="label.subtitle && !label.vertical">
+                    <v-row>
+                        <v-col
+                                v-for="(item, index2) in label.labels"
+                                :key="item.varName"
+                                :cols="item.width"
+                                class="column-container"
+                        >
+                            <v-text-field
+                                    outlined
+                                    v-model="varData[index1][index2]"
+                                    :label="item.description"
+                                    :placeholder="item.varName"
+                            ></v-text-field>
+                        </v-col>
+                    </v-row>
+                </div>
                 <v-text-field
-                        v-if="label.vertical"
+                        v-if="label.subtitle && label.vertical"
                         v-for="(item, index2) in label.labels"
+                        :key="item.varName"
                         v-bind:class="index2 ? '' : 'first-vertical-textField'"
                         outlined
                         v-model="varData[index1][index2]"
@@ -57,22 +82,18 @@
     data () {
       return {
         globalVars: {},
-        stickyVars: {},
         varLabels: [],
         varData: []
       }
     },
     methods: {
-      storeData () {
-        console.log(this.fileContent)
+      setArray () {
+        // 存储原始数据
         let lines = this.fileContent.split('\n')
         lines.forEach(value => {
-          let vs = value.split(' ')
+          let vs = value.match(/-?[0-9]+[Ee]?\.?[0-9]*/g)
           this.varData.push(vs)
         })
-      },
-      setArray () {
-        console.log(this.rules)
         // 在 varLabels 的第 i 个数组中推入对象
         function pushInLabels (t, i, item, single = true, description = '', vertical = false, subtitle = '', width = 12, first = false) {
           if (!t.varLabels[i]) {
@@ -102,6 +123,7 @@
         let index1 = 0
         let index2 = 0
         try {
+          // 遍历生成数据标签数组
           this.rules.forEach(rule => {
             let { varName, description, type, row, width, dimension, length, labels, vertical } = rule
             if (!width) width = 2
@@ -197,6 +219,7 @@
               })
               // 计算标签
               let itemLabels = labels.map((value, index) => {
+                // TODO: 目前不支持字符串中存在两个变量，可以加入该功能
                 if (Array.isArray(value)) return value
                 else {
                   let tmp = []
@@ -219,13 +242,13 @@
                   }
                   item.varName = varName + '(' + (i + 1).toString() + ',' + (j + 1).toString() + ')'
                   item.description = itemLabels[1][j]
-                  item.subtitle = subtitle
                   let first = i === 0
-                  pushInLabels(this, index1, item, false, description, vertical, itemLabels[0][i], width, first)
+                  pushInLabels(this, index1, item, false, description, vertical, subtitle, width, first)
                 }
                 index1++
               }
               // 行指针后处理
+              index1--
               index2 = 0
             }
           })
@@ -235,23 +258,9 @@
         }
         // 完成
         this.$emit('loading-finished')
-        console.log(this.globalVars)
-        console.log(this.varLabels)
-        console.log(this.varData)
-      },
-      inputChanged (item) {
-        console.log(item)
-      }
-    },
-    watch: {
-      fileContent: function (oldVal, newVal) {
-        if (oldVal === newVal) return
-        this.setArray()
-        console.log('newVal')
       }
     },
     created () {
-      this.storeData()
       this.setArray()
     }
   }
@@ -267,13 +276,13 @@
     .first-vertical-title {
         position: absolute;
     }
-    .non-vertical-column {
-
-    }
     .column-container {
         padding: 0 12px
     }
     .column-title {
-        margin-bottom: 4px
+        margin-bottom: 8px
+    }
+    .column-subtitle {
+        margin-bottom: 12px
     }
 </style>

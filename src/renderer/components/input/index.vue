@@ -24,7 +24,7 @@
                         title="选择输入文件"
                         dialog-title="选择 1DIVN 输入文件"
                         :dialog-filters="[{name: '1DIVN File', extensions: ['1D']}]"
-                        :loading-finished="loadingOverlay = false"
+                        v-on:loading-start="loadingOverlay = true"
                         v-on:file-in="fileSelect"
                 ></file-drag>
             </v-col>
@@ -64,17 +64,67 @@
             </v-col>
         </v-row>
         <v-card v-if="inputContent!==''">
-            <v-card-title>输入文件：{{ inputFile.name }}</v-card-title>
+            <v-btn
+                    style="position: absolute;right: 12px;top: 12px"
+                    color="primary"
+                    @click="fileSelect({filePath: inputFile.path})"
+            >
+                重新加载当前文件
+            </v-btn>
+            <v-card-title style="width: 100%">
+                输入文件：{{ inputFile.name }}
+            </v-card-title>
             <v-card-text>
                 <h3>文件路径：{{ inputFile.path }}</h3>
                 <h3>文件大小：{{ inputFile.size }}</h3>
             </v-card-text>
             <v-divider></v-divider>
             <props-display
+                    v-if="displayReset"
+                    ref="propsDisplay"
                     :rules="rules"
                     :file-content="inputContent"
                     :error-raise="errorMessage"
+                    :loading-finished="loadingOverlay = false"
             ></props-display>
+            <v-fade-transition>
+                <v-speed-dial
+                        v-if="displayReset"
+                        v-model="editButton"
+                        fixed
+                        direction="top"
+                        transition="slide-y-reverse-transition"
+                        style="right: 4rem;bottom: 5rem"
+                >
+                    <template v-slot:activator>
+                        <v-btn
+                                v-model="editButton"
+                                color="blue darken-2"
+                                dark
+                                fab
+                        >
+                            <v-icon v-if="editButton">mdi-close</v-icon>
+                            <v-icon v-else>mdi-pencil</v-icon>
+                        </v-btn>
+                    </template>
+                    <v-btn
+                            rounded
+                            dark
+                            color="indigo darken-1"
+                            @click="fileSave"
+                    >
+                        <v-icon>mdi-content-save</v-icon>&nbsp;保存文件
+                    </v-btn>
+                    <v-btn
+                            rounded
+                            dark
+                            color="orange darken-3"
+                            @click="fileSaveFor"
+                    >
+                        <v-icon>mdi-content-save-all</v-icon>&nbsp;另存为
+                    </v-btn>
+                </v-speed-dial>
+            </v-fade-transition>
         </v-card>
     </v-container>
 </template>
@@ -82,6 +132,7 @@
 <script>
   import PropsDisplay from './propsDisplay'
   const fs = require('fs')
+  const { dialog } = require('electron').remote
   /*
   * config: 当前配置文件
   * configs: 所有配置文件
@@ -97,7 +148,9 @@
           name: '无'
         },
         configs: [],
+        editButton: false,
         rules: [],
+        displayReset: false,
         inputContent: '',
         inputFile: {
           name: '',
@@ -112,14 +165,16 @@
     },
     methods: {
       showMessage (text) {
+        this.MessageShow = false
         this.MessageColor = 'primary'
-        this.MessageShow = true
         this.MessageText = text
+        this.MessageShow = true
       },
       errorMessage (text) {
+        this.MessageShow = false
         this.MessageColor = 'red lighten-1'
-        this.MessageShow = true
         this.MessageText = text
+        this.MessageShow = true
       },
       fileSelect (res) {
         this.loadingOverlay = true
@@ -127,8 +182,11 @@
         // 检查传入数据
         if (result) {
           this.errorMessage(message)
+          this.loadingOverlay = false
           return
         }
+        // 强制关闭组件
+        this.displayReset = false
         // 读取输入文件
         try {
           this.inputContent = fs.readFileSync(filePath, 'utf8')
@@ -143,9 +201,45 @@
         this.inputFile.name = this.getFileBaseNameFromPath(filePath)
         this.inputFile.path = filePath
         this.inputFile.size = this.getFileSize(filePath)
-        // 数据传入 propsDisplay 组件自动解析
+        // 数据传入 propsDisplay 组件自动解析，重置 propsDisplay 组件
+        this.$nextTick(() => {
+          this.displayReset = true
+          this.showMessage('加载成功')
+        })
       },
-      newContent (event) {}
+      fileSave (newFilePath) {
+        let data = this.$refs['propsDisplay'].varData
+        let fileContent = ''
+        data.forEach(value => {
+          if (!value) return
+          let fileLine = value.join(' ')
+          fileContent += fileLine + '\n'
+        })
+        // 写入文件
+        let filePath = typeof newFilePath === 'string' ? newFilePath : this.inputFile.path
+        try {
+          fs.writeFileSync(filePath, fileContent)
+        } catch (e) {
+          this.errorMessage('无法写入文件')
+          console.log(e)
+          return
+        }
+        // 更新文件信息
+        if (filePath === newFilePath) {
+          this.inputFile.name = this.getFileBaseNameFromPath(newFilePath)
+          this.inputFile.path = newFilePath
+          this.inputFile.size = this.getFileSize(newFilePath)
+        }
+        this.showMessage('保存完成')
+      },
+      fileSaveFor () {
+        // 选择保存路径
+        const result = dialog.showSaveDialog({
+          title: '选择保存路径',
+          filters: [{name: '1DIVN File', extensions: ['1D']}]
+        })
+        if (result) this.fileSave(result)
+      }
     },
     beforeRouteEnter (to, from, next) {
       next(vm => {
@@ -178,8 +272,6 @@
           }
         }
       })
-    },
-    created () {
     }
   }
 </script>
