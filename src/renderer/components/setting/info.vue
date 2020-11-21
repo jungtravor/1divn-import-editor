@@ -1,7 +1,7 @@
 <template>
     <v-container>
-        <h1>应用信息</h1>
-        <v-simple-table>
+        <h1>路径信息</h1>
+        <v-simple-table style="background-color: transparent">
             <template v-slot:default>
                 <thead>
                 <tr>
@@ -38,6 +38,7 @@
     created () {
       this.infoItems.push({name: 'Executable File Name', value: this.getExecPath()})
       this.infoItems.push({name: 'Executable File Path', value: this.getRootDirPath()})
+      this.infoItems.push({name: 'Input File Config Path', value: this.getRootDirPath() + '\\configs'})
     }
   }
 </script>

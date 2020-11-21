@@ -5,12 +5,17 @@ Vue.use(Router)
 
 export default new Router({
   routes: [
+    // {
+    //   path: '/',
+    //   name: 'index',
+    //   title: '主页',
+    //   meta: {},
+    //   component: require('@/components/index/index').default
+    // },
     {
       path: '/',
       name: 'index',
-      title: '主页',
-      meta: {},
-      component: require('@/components/index/index').default
+      redirect: '/input'
     },
     {
       path: '/input',
@@ -39,13 +44,13 @@ export default new Router({
           meta: {icon: 'mdi-application-import', title: '输入文件'},
           component: require('@/components/setting/input/index').default
         },
-        {
-          path: '/setting/test',
-          name: 'setting_test',
-          title: '设置 - 测试',
-          meta: {icon: 'mdi-application-import', title: '测试'},
-          component: require('@/components/setting/test').default
-        },
+        // {
+        //   path: '/setting/test',
+        //   name: 'setting_test',
+        //   title: '设置 - 测试',
+        //   meta: {icon: 'mdi-application-import', title: '测试'},
+        //   component: require('@/components/setting/test').default
+        // },
         {
           path: '/setting/info',
           name: 'setting_info',
