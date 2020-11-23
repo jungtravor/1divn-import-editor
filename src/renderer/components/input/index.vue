@@ -54,26 +54,6 @@
                         >
                             <v-icon>mdi-cog-outline</v-icon>
                         </v-btn>
-<!--                        <v-menu offset-y>-->
-<!--                            <template v-slot:activator="{ on, attrs }">-->
-<!--                                <v-btn-->
-<!--                                        color="primary"-->
-<!--                                        icon-->
-<!--                                        v-bind="attrs"-->
-<!--                                        v-on="on"-->
-<!--                                >-->
-<!--                                    <v-icon>mdi-arrow-down-drop-circle</v-icon>-->
-<!--                                </v-btn>-->
-<!--                            </template>-->
-<!--                            <v-list>-->
-<!--                                <v-list-item-->
-<!--                                        v-for="(item, index) in configs"-->
-<!--                                        :key="index"-->
-<!--                                >-->
-<!--                                    <v-list-item-title>{{ item.name }} v{{ item.version }}</v-list-item-title>-->
-<!--                                </v-list-item>-->
-<!--                            </v-list>-->
-<!--                        </v-menu>-->
                     </v-card-title>
                     <v-card-text v-if="config.name !== '无'">
                         <h3 style="margin-bottom: 4px">作者：{{ config.author }}，
@@ -105,20 +85,28 @@
             </v-card-text>
             <v-divider></v-divider>
 
+            <!-- 输入文件加载错误提示 -->
+            <h2
+                    v-if="loadingError"
+                    style="padding: 12px 0;width: 100%;text-align: center;color: indianred">
+                加载错误
+            </h2>
+
             <!-- 输入文件数据面板 -->
             <props-display
-                    v-if="displayReset"
+                    v-if="displayOn"
                     ref="propsDisplay"
                     :rules="rules"
                     :file-content="inputContent"
-                    :error-raise="errorMessage"
-                    :loading-finished="loadingOverlay = false"
+                    v-on:error-raise="loadingFailed"
+                    v-on:warning-raise="loadingWarning"
+                    v-on:loading-finished="loadingFinished"
             ></props-display>
 
             <!-- 输入文件操作按钮 -->
             <v-fade-transition>
                 <v-speed-dial
-                        v-if="displayReset"
+                        v-if="displayOn"
                         v-model="editButton"
                         fixed
                         direction="top"
@@ -139,15 +127,15 @@
                     <v-btn
                             rounded
                             dark
-                            color="indigo darken-1"
+                            color="primary darken-1"
                             @click="fileSave"
                     >
-                        <v-icon>mdi-content-save</v-icon>&nbsp;保存文件
+                        <v-icon>mdi-content-save</v-icon>&nbsp;保存
                     </v-btn>
                     <v-btn
                             rounded
                             dark
-                            color="orange darken-3"
+                            color="primary darken-2"
                             @click="fileSaveFor"
                     >
                         <v-icon>mdi-content-save-all</v-icon>&nbsp;另存为
@@ -179,7 +167,7 @@
         configs: [],
         editButton: false,
         rules: [],
-        displayReset: false,
+        displayOn: false,
         inputContent: '',
         inputFile: {
           name: '',
@@ -189,7 +177,8 @@
         MessageColor: 'primary',
         MessageShow: false,
         MessageText: '',
-        loadingOverlay: false
+        loadingOverlay: false,
+        loadingError: false
       }
     },
     methods: {
@@ -204,7 +193,17 @@
         this.MessageShow = true
       },
       /**
-       * 显示错误提醒消息
+       * 显示提醒消息
+       * @param text
+       */
+      warningMessage (text) {
+        this.MessageShow = false
+        this.MessageColor = 'orange lighten-1'
+        this.MessageText = text
+        this.MessageShow = true
+      },
+      /**
+       * 显示错误消息
        * @param text
        */
       errorMessage (text) {
@@ -228,7 +227,7 @@
           return
         }
         // 强制关闭组件
-        this.displayReset = false
+        this.displayOn = false
         // 读取输入文件
         fs.readFile(filePath, 'utf8', (err, data) => {
           if (err) {
@@ -250,8 +249,8 @@
             this.inputFile.size = this.getFileSize(filePath)
             // 数据传入 propsDisplay 组件自动解析，重置 propsDisplay 组件
             this.$nextTick(() => {
-              this.displayReset = true
-              this.showMessage('加载成功')
+              // 启动组件
+              this.displayOn = true
               // 关闭加载遮罩
               this.loadingOverlay = false
             })
@@ -268,11 +267,21 @@
         // 读取需要保存的数据
         let data = this.$refs['propsDisplay'].varData
         let fileContent = ''
-        data.forEach(value => {
-          if (!value) return
-          let fileLine = value.join(' ')
-          fileContent += fileLine + '\n'
-        })
+        try {
+          data.forEach(value => {
+            if (!value) return
+            // 检查是否存在空数据
+            value.forEach(val => {
+              if (val === '') throw new Error('有数据未填写，请检查后再次保存')
+            })
+            let fileLine = value.join(' ')
+            fileContent += fileLine + '\n'
+          })
+        } catch (e) {
+          this.loadingOverlay = false
+          this.errorMessage(e.message)
+          return
+        }
         // 写入文件
         let filePath = typeof newFilePath === 'string' ? newFilePath : this.inputFile.path
         fs.writeFile(filePath, fileContent, (e) => {
@@ -302,6 +311,22 @@
           filters: [{name: '1DIVN File', extensions: ['1D']}]
         })
         if (result) this.fileSave(result)
+      },
+      loadingFinished () {
+        this.loadingError = false
+        this.loadingOverlay = false
+        this.showMessage('加载完成')
+      },
+      loadingFailed () {
+        this.displayOn = false
+        this.loadingError = false
+        this.loadingOverlay = false
+        this.errorMessage('加载失败，有数据错误')
+      },
+      loadingWarning (text) {
+        this.loadingOverlay = false
+        let warningText = text || '有数据缺失，请检查仔细检查所有数据'
+        this.warningMessage(warningText)
       }
     },
     beforeRouteEnter (to, from, next) {

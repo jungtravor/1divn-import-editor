@@ -148,13 +148,14 @@
             }
           })
         } catch (e) {
+          console.log(e)
           if (e.message === 'exists') this.errorMessage('与现有配置文件发生冲突，添加失败')
-          this.errorMessage('无法读取文件，添加失败')
+          else this.errorMessage('无法读取文件，请检查文件格式是否正确')
           return
         }
         // 检查并生成随机文件名
         let fileName = this.getFileBaseNameFromPath(filePath)
-        let configDir = this.getRootDirPath() + '\\configs'
+        let configDir = this.getThisDocumentsPath() + '\\configs'
         let dirInfo = fs.readdirSync(configDir)
         let { name, ext } = this.getFileNameAndExt(fileName)
         name = this.hash(8)

@@ -36,6 +36,14 @@ Vue.mixin({
     getExecPath () {
       return remote.app.getPath('exe')
     },
+    getUserDataPath () {
+      return remote.app.getPath('userData')
+    },
+    getThisDocumentsPath () {
+      let result = remote.app.getPath('documents') + '\\1DIVN Editor'
+      if (!fs.existsSync(result)) fs.mkdirSync(result)
+      return result
+    },
     getFileBaseNameFromPath (filePath) {
       return path.basename(filePath)
     },
@@ -74,7 +82,7 @@ Vue.mixin({
         message: ''
       }
       // 检查配置
-      let configDir = this.getRootDirPath() + '\\configs'
+      let configDir = this.getThisDocumentsPath() + '\\configs'
       let configFile = configDir + '\\config'
       if (!fs.existsSync(configDir)) fs.mkdirSync(configDir)
       if (!fs.existsSync(configFile)) {
@@ -169,7 +177,7 @@ Vue.mixin({
       return { result: result, err: err }
     },
     input_updateConfig (activatedConfig, callback) {
-      let configFile = this.getRootDirPath() + '\\configs\\config'
+      let configFile = this.getThisDocumentsPath() + '\\configs\\config'
       let { name, version, file } = activatedConfig
       let configString = JSON.stringify({
         activated: {

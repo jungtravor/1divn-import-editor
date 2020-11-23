@@ -38,7 +38,8 @@
     created () {
       this.infoItems.push({name: 'Executable File Name', value: this.getExecPath()})
       this.infoItems.push({name: 'Executable File Path', value: this.getRootDirPath()})
-      this.infoItems.push({name: 'Input File Config Path', value: this.getRootDirPath() + '\\configs'})
+      this.infoItems.push({name: 'Documents Path', value: this.getThisDocumentsPath()})
+      this.infoItems.push({name: 'Input File Config Path', value: this.getThisDocumentsPath() + '\\configs'})
     }
   }
 </script>

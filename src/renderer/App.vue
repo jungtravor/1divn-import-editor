@@ -45,10 +45,10 @@
     },
     mounted () {
       // 通过读取路由信息生成导航栏
-      const routerOptions = this.$router.options.routes.filter(value => {
-        return value.path[0] === '/'
+      this.routeInfo = this.$router.options.routes.filter(value => {
+        let withoutNames = ['index']
+        return value.path[0] === '/' && !withoutNames.includes(value.name)
       })
-      this.routeInfo = routerOptions
       // 全局默认不允许拖拽
       const holder = document.getElementById('app')
       holder.ondragover = () => {

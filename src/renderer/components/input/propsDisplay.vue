@@ -29,7 +29,7 @@
                 <h2 v-if="label.first && label.subtitle" class="first-vertical-title">{{label.description}}</h2>
                 <h3
                         v-if="label.subtitle && label.vertical"
-                        v-bind:class="['column-title', label.labels[0].verticalCount <= 12 ? 'first-vertical-subtitle' : '']"
+                        v-bind:class="['column-title', label.labels[0].verticalCount < 12 ? 'first-vertical-subtitle' : '']"
                 >
                     {{ label.subtitle }}
                 </h3>
@@ -72,6 +72,7 @@
 </template>
 
 <script>
+  const MAX_LENGTH = 100
   export default {
     props: {
       rules: Array,
@@ -153,9 +154,8 @@
               let value
               if (type === 'number') value = parseInt(this.varData[index1][index2])
               else value = parseFloat(this.varData[index1][index2])
-              // 更新数据
+              // 更新可引用变量数据
               this.globalVars[varName] = value
-              this.varData[index1][index2] = value
               // 行指针后处理
               index2++
             } else if (dimension === 1) {
@@ -175,6 +175,8 @@
                   len += value
                 }
               })
+              // 检查数组长度是否超出限制
+              if (len > MAX_LENGTH) throw new Error('数组长度超出限制')
               // 计算标签
               let itemLabels = []
               let labelTemplate = labels[0]
@@ -215,6 +217,8 @@
                     tmp += value
                   }
                 })
+                // 检查数组长度是否超出限制
+                if (tmp > MAX_LENGTH) throw new Error('数组长度超出限制')
                 return tmp
               })
               // 计算标签
@@ -254,7 +258,24 @@
           })
         } catch (e) {
           this.$emit('error-raise', e.message)
-          console.log('read data error', e)
+          return
+        }
+        // 打印调试信息
+        console.log(this.varData)
+        console.log(this.varLabels)
+        // 检查数据正确性
+        try {
+          this.varLabels.forEach((val1, index1) => {
+            if (this.varData[index1]) {
+              val1.labels.forEach((val2, index2) => {
+                if (this.varData[index1][index2] === undefined) throw new Error('undefined' + index1.toString() + '-' + index2.toString())
+              })
+            }
+          })
+        } catch (e) {
+          console.log(e)
+          this.$emit('warning-raise', 'waring')
+          return
         }
         // 完成
         this.$emit('loading-finished')
